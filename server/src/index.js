@@ -4,7 +4,13 @@ const cors = require('@fastify/cors');
 const multipart = require('@fastify/multipart');
 const { PrismaClient } = require('@prisma/client');
 const pdf = require('pdf-parse'); 
-const Redis = require('ioredis'); // We keep the import to avoid breaking other files, but won't use it.
+
+// ---------------------------------------------------------
+// 🔌 SAFE REDIS IMPORT
+// ---------------------------------------------------------
+// This uses your new redisClient.js file. 
+// It automatically handles connection errors or switches to "Safe Mode".
+const redis = require('./redisClient');
 
 // Import your services
 const { scoreJobsBatch } = require('./aiService'); 
@@ -12,23 +18,6 @@ const { handleChat } = require('./agentService');
 const { fetchExternalJobs } = require('./jobService'); 
 
 const prisma = new PrismaClient();
-
-// ---------------------------------------------------------
-// 🚨 EMERGENCY FIX: REDIS PERMANENTLY DISABLED
-// ---------------------------------------------------------
-// Your app was crashing because of Redis connection timeouts.
-// This block forces the app to run in "Database Only" mode.
-// This is 100% allowed by the assignment ("In-memory or JSON" storage).
-
-const redis = {
-  status: 'disabled',
-  get: async (key) => null,       // Always say "Cache Miss" - force DB fetch
-  set: async (key, val) => {},    // Do nothing
-  del: async (key) => {},         // Do nothing
-  on: (event, callback) => {}     // Ignore error listeners
-};
-
-console.log("⚠️ REDIS DISABLED. System running in stable Database-Only mode.");
 
 // ---------------------------------------------------------
 // 🔄 SMART CACHING GLOBALS
@@ -45,10 +34,16 @@ fastify.register(multipart);
 // 1. Auth & Profile (MANDATORY FOR ASSIGNMENT)
 // ---------------------------------------------------------
 
-// A. Fake Login
+// A. Fake Login (Updated for Mobile)
 fastify.post('/login', async (req, reply) => {
   const { email, password } = req.body;
-  if (email === 'test@gmail.com' && password === 'test@123') {
+
+  // 🛡️ MOBILE FIX: Sanitize Input
+  // Phones often add capital letters or spaces at the end. We fix that here.
+  const cleanEmail = email ? email.toLowerCase().trim() : '';
+  const cleanPassword = password ? password.trim() : '';
+
+  if (cleanEmail === 'test@gmail.com' && cleanPassword === 'test@123') {
     return { success: true, token: 'fake-jwt-token-123' };
   }
   return reply.status(401).send({ success: false, error: 'Invalid credentials' });
@@ -82,7 +77,7 @@ fastify.post('/upload-resume', async (req, reply) => {
       create: { email: 'test@gmail.com', password: 'test@123', resumeText: resumeText }
     });
 
-    // Clear cache (Dummy call)
+    // Clear cache
     await redis.del('jobs:all'); 
     console.log("🔄 Resume updated.");
 
@@ -100,7 +95,8 @@ fastify.post('/upload-resume', async (req, reply) => {
 fastify.get('/jobs', async (req, reply) => {
   const cacheKey = 'jobs:all';
 
-  // A. Cache Check (Will always return null now)
+  // A. Cache Check
+  // If Redis is disabled (Safe Mode), this simply returns null and skips to DB
   const cachedJobs = await redis.get(cacheKey);
   if (cachedJobs) return JSON.parse(cachedJobs);
 
@@ -139,7 +135,7 @@ fastify.get('/jobs', async (req, reply) => {
       // Sort by High Score first!
       finalJobs.sort((a, b) => b.matchScore - a.matchScore);
 
-      // Save to Cache (Dummy call - does nothing)
+      // Save to Cache (If Redis is active)
       await redis.set(cacheKey, JSON.stringify(finalJobs), 'EX', 3600);
 
       return finalJobs;
