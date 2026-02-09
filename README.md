@@ -14,7 +14,7 @@
 
 Here is the high-level architecture of the system, showing how the Frontend (React) communicates with the Backend (Fastify) and external AI services.
 
-![System Architecture](YOUR_NEW_IMAGE_LINK_HERE)
+![System Architecture](https://github.com/user-attachments/assets/4ba1a8d1-3dc9-4eea-a6fc-911878516875)
 
 > *The system uses a resilient architecture where Redis is optional—ensuring the app runs smoothly even in limited deployment environments.*
 
