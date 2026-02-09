@@ -3,6 +3,9 @@ import axios from 'axios';
 
 const FilterContext = createContext();
 
+// 🌍 GLOBAL CONFIG: Backend URL
+const API_BASE_URL = "https://ai-job-tracker-api-e85o.onrender.com";
+
 export function FilterProvider({ children }) {
   // 1. Filter State
   const [filters, setFilters] = useState({
@@ -21,7 +24,8 @@ export function FilterProvider({ children }) {
   const fetchJobs = async () => {
     try {
       setLoading(true);
-      const res = await axios.get('http://localhost:3000/jobs');
+      // 👇 FIX: Use the Render URL here!
+      const res = await axios.get(`${API_BASE_URL}/jobs`);
       setJobs(res.data || []); 
     } catch (err) {
       console.error("Fetch error:", err);
@@ -44,13 +48,16 @@ export function FilterProvider({ children }) {
   };
 
   // 5. Client-side Filtering Logic
-  // This takes the real Adzuna jobs and filters them based on UI/AI selections 
+  // This takes the real jobs and filters them based on UI/AI selections 
   const filteredJobs = jobs.filter(job => {
+    // If job or location is undefined, skip to avoid crashes
+    if (!job || !job.location) return false;
+
     const matchesLocation = !filters.location || job.location.toLowerCase().includes(filters.location.toLowerCase());
     const matchesType = !filters.jobType || job.type === filters.jobType;
     const matchesQuery = !filters.query || 
-      job.title.toLowerCase().includes(filters.query.toLowerCase()) || 
-      job.company.toLowerCase().includes(filters.query.toLowerCase());
+      (job.title && job.title.toLowerCase().includes(filters.query.toLowerCase())) || 
+      (job.company && job.company.toLowerCase().includes(filters.query.toLowerCase()));
   
     const isRemoteJob = job.location.toLowerCase().includes('remote');
     const matchesRemote = !filters.remote || isRemoteJob;

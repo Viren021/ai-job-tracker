@@ -12,6 +12,12 @@ import ChatWidget from './components/ChatWidget';
 import MyApplications from './components/MyApplications';
 import ApplicationModal from './components/ApplicationModal';     
 
+// ------------------------------------------------------
+// 🌍 GLOBAL CONFIG: Backend URL
+// ------------------------------------------------------
+// We use the live Render URL so it works everywhere (Local + Vercel + Mobile)
+const API_BASE_URL = "https://ai-job-tracker-api-e85o.onrender.com";
+
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [currentView, setCurrentView] = useState('feed');
@@ -25,7 +31,8 @@ function App() {
       if (token) {
         setIsAuthenticated(true);
         try {
-          const res = await axios.get('http://localhost:3000/profile');
+          // FIX: Use API_BASE_URL instead of localhost
+          const res = await axios.get(`${API_BASE_URL}/profile`);
           setHasResume(res.data.hasResume);
         } catch (e) { console.error("Profile check failed", e); }
       }
@@ -47,7 +54,9 @@ function App() {
 
     try {
       alert("Uploading and analyzing resume... Please wait.");
-      const response = await axios.post('http://localhost:3000/upload-resume', formData, {
+      
+      // FIX: Use API_BASE_URL instead of localhost
+      const response = await axios.post(`${API_BASE_URL}/upload-resume`, formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
       alert("Success! " + response.data.message);

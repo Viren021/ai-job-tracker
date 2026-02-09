@@ -2,6 +2,9 @@ import React, { useState } from 'react';
 import axios from 'axios';
 import { Upload, FileText, CheckCircle } from 'lucide-react';
 
+// 🌍 GLOBAL CONFIG: Backend URL
+const API_BASE_URL = "https://ai-job-tracker-api-e85o.onrender.com";
+
 const ResumeUpload = () => {
   const [file, setFile] = useState(null);
   const [uploading, setUploading] = useState(false);
@@ -19,14 +22,15 @@ const ResumeUpload = () => {
 
     try {
       setUploading(true);
-      await axios.post('http://localhost:3000/upload-resume', formData, {
+      // 👇 FIX: Use the Render URL here!
+      await axios.post(`${API_BASE_URL}/upload-resume`, formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
       setSuccess(true);
       setTimeout(() => setSuccess(false), 3000);
     } catch (error) {
       console.error("Upload failed", error);
-      alert("Failed to upload resume");
+      alert("Failed to upload resume. Make sure backend is running.");
     } finally {
       setUploading(false);
     }

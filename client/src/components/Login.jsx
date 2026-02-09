@@ -1,6 +1,10 @@
 import React, { useState } from 'react';
 import axios from 'axios';
-import { useNavigate } from 'react-router-dom'; 
+// (Unused import removed for cleanliness)
+
+// 🌍 GLOBAL CONFIG: Backend URL
+// We use the live Render URL so login works on Mobile & Vercel
+const API_BASE_URL = "https://ai-job-tracker-api-e85o.onrender.com";
 
 const Login = ({ setIsAuthenticated }) => {
   const [email, setEmail] = useState('');
@@ -10,13 +14,16 @@ const Login = ({ setIsAuthenticated }) => {
   const handleLogin = async (e) => {
     e.preventDefault();
     try {
-      const res = await axios.post('http://localhost:3000/login', { email, password });
+      // 👇 FIX: Use the Render URL here!
+      const res = await axios.post(`${API_BASE_URL}/login`, { email, password });
+      
       if (res.data.success) {
         localStorage.setItem('token', res.data.token);
         setIsAuthenticated(true);
         window.location.href = "/"; 
       }
     } catch (err) {
+      console.error(err);
       setError("Invalid email or password");
     }
   };

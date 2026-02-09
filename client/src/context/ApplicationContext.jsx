@@ -3,6 +3,9 @@ import axios from 'axios';
 
 const ApplicationContext = createContext();
 
+// 🌍 GLOBAL CONFIG: Backend URL
+const API_BASE_URL = "https://ai-job-tracker-api-e85o.onrender.com";
+
 export function ApplicationProvider({ children }) {
   const [pendingJob, setPendingJob] = useState(null); 
   const [showModal, setShowModal] = useState(false);  
@@ -23,9 +26,10 @@ export function ApplicationProvider({ children }) {
   const confirmApplication = async () => {
     if (!pendingJob) return;
     try {
-      const companyName = pendingJob.company.display_name || pendingJob.company || "Unknown Company";
+      const companyName = pendingJob.company?.display_name || pendingJob.company || "Unknown Company";
 
-      await axios.post('http://localhost:3000/applications', {
+      // 👇 FIX: Use the Render URL here!
+      await axios.post(`${API_BASE_URL}/applications`, {
         jobId: pendingJob.id,
         jobTitle: pendingJob.title,
         company: companyName, 
@@ -34,8 +38,8 @@ export function ApplicationProvider({ children }) {
       alert("✅ Application Saved!");
     } catch (err) {
       console.error("Save failed:", err);
+      alert("Failed to save application. Check connection.");
     } finally {
-      
       setPendingJob(null);
       setShowModal(false);
     }

@@ -2,6 +2,9 @@ import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { Calendar, Briefcase, Building, CheckCircle } from 'lucide-react';
 
+// 🌍 GLOBAL CONFIG: Backend URL
+const API_BASE_URL = "https://ai-job-tracker-api-e85o.onrender.com";
+
 const MyApplications = () => {
   const [applications, setApplications] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -9,7 +12,8 @@ const MyApplications = () => {
   useEffect(() => {
     const fetchApps = async () => {
       try {
-        const res = await axios.get('http://localhost:3000/applications');
+        // 👇 FIX: Use the Render URL here!
+        const res = await axios.get(`${API_BASE_URL}/applications`);
         setApplications(res.data);
       } catch (err) {
         console.error("Failed to load applications", err);

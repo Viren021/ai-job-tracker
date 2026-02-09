@@ -3,6 +3,9 @@ import axios from 'axios';
 import { MessageCircle, X, Send } from 'lucide-react';
 import { useFilters } from '../context/FilterContext'; 
 
+// 🌍 GLOBAL CONFIG: Backend URL
+const API_BASE_URL = "https://ai-job-tracker-api-e85o.onrender.com";
+
 const ChatWidget = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState([
@@ -36,8 +39,8 @@ const ChatWidget = () => {
     setLoading(true);
 
     try {
-      // 2. Send to Backend
-      const res = await axios.post('http://localhost:3000/chat', { message: userText });
+      // 👇 FIX: Use the Render URL here!
+      const res = await axios.post(`${API_BASE_URL}/chat`, { message: userText });
       const { reply, action } = res.data;
 
       // 3. Handle Logic-based Actions from AI
@@ -51,7 +54,7 @@ const ChatWidget = () => {
         
         // CASE B: Update Filter (User asked to filter results)
         if (action.type === 'UPDATE_FILTER') {
-           
+            
            // Sub-case: The AI sends "type" (we need to know if it's Remote or Job Type)
            if (action.filter === 'type') {
                if (action.value === 'Remote') {
