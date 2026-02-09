@@ -1,0 +1,30 @@
+version: '3.8'
+
+services:
+  # 1. The Backend API
+  backend:
+    build: ./server
+    ports:
+      - "3000:3000"
+    # 👇 THIS IS THE KEY CHANGE
+    # This tells Docker to load variables from server/.env directly into the container
+    env_file:
+      - ./server/.env
+    depends_on:
+      - redis
+
+  # 2. The Frontend (React)
+  frontend:
+    build: ./client
+    ports:
+      - "5173:5173"
+    environment:
+      - VITE_API_BASE_URL=http://localhost:3000
+    depends_on:
+      - backend
+
+  # 3. Redis (Cache)
+  redis:
+    image: redis:alpine
+    ports:
+      - "6379:6379"
