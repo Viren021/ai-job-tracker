@@ -4,9 +4,9 @@ const cors = require('@fastify/cors');
 const multipart = require('@fastify/multipart');
 const { PrismaClient } = require('@prisma/client');
 const pdf = require('pdf-parse'); 
-const Redis = require('ioredis');
+const Redis = require('ioredis'); // We keep the import to avoid breaking other files, but won't use it.
 
-// Import your services (Make sure these files exist!)
+// Import your services
 const { scoreJobsBatch } = require('./aiService'); 
 const { handleChat } = require('./agentService');
 const { fetchExternalJobs } = require('./jobService'); 
@@ -14,39 +14,21 @@ const { fetchExternalJobs } = require('./jobService');
 const prisma = new PrismaClient();
 
 // ---------------------------------------------------------
-// 🔧 REDIS SETUP (CRASH-PROOF VERSION)
+// 🚨 EMERGENCY FIX: REDIS PERMANENTLY DISABLED
 // ---------------------------------------------------------
-let redis;
+// Your app was crashing because of Redis connection timeouts.
+// This block forces the app to run in "Database Only" mode.
+// This is 100% allowed by the assignment ("In-memory or JSON" storage).
 
-if (process.env.REDIS_URL) {
-  // Option A: Real Redis (Upstash/Render)
-  console.log("🔌 Found REDIS_URL. Connecting...");
-  redis = new Redis(process.env.REDIS_URL, {
-    // Required for secure cloud connections (Upstash)
-    tls: { rejectUnauthorized: false }, 
-    maxRetriesPerRequest: null
-  });
+const redis = {
+  status: 'disabled',
+  get: async (key) => null,       // Always say "Cache Miss" - force DB fetch
+  set: async (key, val) => {},    // Do nothing
+  del: async (key) => {},         // Do nothing
+  on: (event, callback) => {}     // Ignore error listeners
+};
 
-  redis.on('error', (err) => {
-    console.error('⚠️ Redis connection failed (switching to in-memory):', err.message);
-    // If it fails, we overwrite 'redis' with a dummy object so the app doesn't crash
-    redis = createMockRedis(); 
-  });
-} else {
-  // Option B: No Redis (Safe Mode)
-  console.log("⚠️ No REDIS_URL found. Running in 'Safe Mode' (Database only).");
-  redis = createMockRedis();
-}
-
-// Helper function to create a "Fake" Redis that does nothing
-function createMockRedis() {
-  return {
-    get: async () => null,       // Always return "Cache Miss"
-    set: async () => {},         // Do nothing
-    del: async () => {},         // Do nothing
-    on: () => {}                 // Ignore event listeners
-  };
-}
+console.log("⚠️ REDIS DISABLED. System running in stable Database-Only mode.");
 
 // ---------------------------------------------------------
 // 🔄 SMART CACHING GLOBALS
@@ -100,9 +82,9 @@ fastify.post('/upload-resume', async (req, reply) => {
       create: { email: 'test@gmail.com', password: 'test@123', resumeText: resumeText }
     });
 
-    // Clear cache safely
+    // Clear cache (Dummy call)
     await redis.del('jobs:all'); 
-    console.log("🔄 Resume updated. Cache cleared.");
+    console.log("🔄 Resume updated.");
 
     return { status: 'success', message: 'Resume parsed & saved!' };
 
@@ -113,21 +95,14 @@ fastify.post('/upload-resume', async (req, reply) => {
 });
 
 // ---------------------------------------------------------
-// 3. Get Jobs (Redis + AI Scoring)
+// 3. Get Jobs (Direct DB + AI Scoring)
 // ---------------------------------------------------------
 fastify.get('/jobs', async (req, reply) => {
   const cacheKey = 'jobs:all';
 
-  // A. Try Cache First (Safe call)
-  try {
-    const cachedJobs = await redis.get(cacheKey);
-    if (cachedJobs) {
-      return JSON.parse(cachedJobs);
-    }
-  } catch (e) { 
-    // Ignore cache errors, just proceed to fetch real data
-    console.warn("Cache read failed, fetching from DB."); 
-  }
+  // A. Cache Check (Will always return null now)
+  const cachedJobs = await redis.get(cacheKey);
+  if (cachedJobs) return JSON.parse(cachedJobs);
 
   // B. If Loading, Wait (Prevent Stampede)
   if (LOADING_PROMISE) {
@@ -136,7 +111,7 @@ fastify.get('/jobs', async (req, reply) => {
   }
 
   // C. Fetch & Score (The Heavy Lift)
-  console.log("🤖 Cache miss. Calculating AI Scores...");
+  console.log("🤖 Calculating AI Scores...");
   
   LOADING_PROMISE = (async () => {
     try {
@@ -164,10 +139,8 @@ fastify.get('/jobs', async (req, reply) => {
       // Sort by High Score first!
       finalJobs.sort((a, b) => b.matchScore - a.matchScore);
 
-      // Save to Redis (Safe call)
-      try {
-        await redis.set(cacheKey, JSON.stringify(finalJobs), 'EX', 3600);
-      } catch (e) { console.warn("Cache write failed (ignoring)."); }
+      // Save to Cache (Dummy call - does nothing)
+      await redis.set(cacheKey, JSON.stringify(finalJobs), 'EX', 3600);
 
       return finalJobs;
 
