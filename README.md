@@ -51,13 +51,16 @@ Here is the high-level architecture of the system, showing how the Frontend (Rea
 
 ## 🚀 Getting Started Locally
 
+Follow these steps to run the project on your local machine.
+
 ### 1. Clone the Repository
 ```bash
 git clone [https://github.com/Viren021/ai-job-tracker.git](https://github.com/Viren021/ai-job-tracker.git)
 cd ai-job-tracker
+```
 
-2. Backend Setup (server/)
-Bash
+### 2. Backend Setup (`server/`)
+```bash
 cd server
 npm install
 
@@ -69,19 +72,33 @@ npx prisma migrate dev --name init
 
 # Start Server
 npm start
-3. Frontend Setup (client/)
-Bash
+```
+
+### 3. Frontend Setup (`client/`)
+```bash
 cd client
 npm install
 
 # Start Frontend
 npm run dev
-🔑 Environment Variables (.env)
-Create a .env file in the server folder with the following:
+```
 
-Code snippet
+---
+
+## 🔑 Environment Variables (`.env`)
+
+Create a `.env` file in the `server` folder with the following:
+
+```env
 DATABASE_URL="postgresql://user:password@host:5432/db"
 GOOGLE_API_KEY="your_gemini_api_key"
 ADZUNA_APP_ID="your_adzuna_id"
 ADZUNA_APP_KEY="your_adzuna_key"
 REDIS_URL="redis://..." (Optional)
+```
+
+---
+
+## 📬 Contact
+
+Created by **Viren** | [GitHub](https://github.com/Viren021) | [LinkedIn](https://www.linkedin.com/in/viren-hadawale-0v21/)
