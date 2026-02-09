@@ -6,18 +6,51 @@ const { PrismaClient } = require('@prisma/client');
 const pdf = require('pdf-parse'); 
 const Redis = require('ioredis');
 
+// Import your services (Make sure these files exist!)
 const { scoreJobsBatch } = require('./aiService'); 
 const { handleChat } = require('./agentService');
 const { fetchExternalJobs } = require('./jobService'); 
 
 const prisma = new PrismaClient();
 
-// --- REDIS CONNECTION (Optional Safe Mode) ---
-// If Redis fails, we want to know, but maybe not crash immediately for a demo
-const redis = new Redis(process.env.REDIS_URL || 'redis://localhost:6379');
-redis.on('error', (err) => console.error('⚠️ Redis Error (Is Docker running?):', err.message));
+// ---------------------------------------------------------
+// 🔧 REDIS SETUP (CRASH-PROOF VERSION)
+// ---------------------------------------------------------
+let redis;
 
-// --- SMART CACHING GLOBALS ---
+if (process.env.REDIS_URL) {
+  // Option A: Real Redis (Upstash/Render)
+  console.log("🔌 Found REDIS_URL. Connecting...");
+  redis = new Redis(process.env.REDIS_URL, {
+    // Required for secure cloud connections (Upstash)
+    tls: { rejectUnauthorized: false }, 
+    maxRetriesPerRequest: null
+  });
+
+  redis.on('error', (err) => {
+    console.error('⚠️ Redis connection failed (switching to in-memory):', err.message);
+    // If it fails, we overwrite 'redis' with a dummy object so the app doesn't crash
+    redis = createMockRedis(); 
+  });
+} else {
+  // Option B: No Redis (Safe Mode)
+  console.log("⚠️ No REDIS_URL found. Running in 'Safe Mode' (Database only).");
+  redis = createMockRedis();
+}
+
+// Helper function to create a "Fake" Redis that does nothing
+function createMockRedis() {
+  return {
+    get: async () => null,       // Always return "Cache Miss"
+    set: async () => {},         // Do nothing
+    del: async () => {},         // Do nothing
+    on: () => {}                 // Ignore event listeners
+  };
+}
+
+// ---------------------------------------------------------
+// 🔄 SMART CACHING GLOBALS
+// ---------------------------------------------------------
 let LOADING_PROMISE = null; 
 
 fastify.register(cors, { 
@@ -30,17 +63,16 @@ fastify.register(multipart);
 // 1. Auth & Profile (MANDATORY FOR ASSIGNMENT)
 // ---------------------------------------------------------
 
-// A. Fake Login (Required by assignment)
+// A. Fake Login
 fastify.post('/login', async (req, reply) => {
   const { email, password } = req.body;
-  // Hardcoded check as per assignment
   if (email === 'test@gmail.com' && password === 'test@123') {
     return { success: true, token: 'fake-jwt-token-123' };
   }
   return reply.status(401).send({ success: false, error: 'Invalid credentials' });
 });
 
-// B. Check Profile (Does resume exist?)
+// B. Check Profile
 fastify.get('/profile', async (req, reply) => {
   const user = await prisma.user.findUnique({ where: { email: 'test@gmail.com' } });
   return { 
@@ -61,13 +93,14 @@ fastify.post('/upload-resume', async (req, reply) => {
     const pdfData = await pdf(buffer);
     const resumeText = pdfData.text;
 
-    // Save to DB (Upsert ensures we update if exists)
+    // Save to DB
     await prisma.user.upsert({
       where: { email: 'test@gmail.com' },
       update: { resumeText: resumeText },
       create: { email: 'test@gmail.com', password: 'test@123', resumeText: resumeText }
     });
 
+    // Clear cache safely
     await redis.del('jobs:all'); 
     console.log("🔄 Resume updated. Cache cleared.");
 
@@ -85,13 +118,16 @@ fastify.post('/upload-resume', async (req, reply) => {
 fastify.get('/jobs', async (req, reply) => {
   const cacheKey = 'jobs:all';
 
-  // A. Try Cache First (Speed: 2ms)
+  // A. Try Cache First (Safe call)
   try {
     const cachedJobs = await redis.get(cacheKey);
     if (cachedJobs) {
       return JSON.parse(cachedJobs);
     }
-  } catch (e) { console.error("Redis Get Error:", e.message); }
+  } catch (e) { 
+    // Ignore cache errors, just proceed to fetch real data
+    console.warn("Cache read failed, fetching from DB."); 
+  }
 
   // B. If Loading, Wait (Prevent Stampede)
   if (LOADING_PROMISE) {
@@ -128,10 +164,10 @@ fastify.get('/jobs', async (req, reply) => {
       // Sort by High Score first!
       finalJobs.sort((a, b) => b.matchScore - a.matchScore);
 
-      // Save to Redis (1 Hour Expiry)
+      // Save to Redis (Safe call)
       try {
         await redis.set(cacheKey, JSON.stringify(finalJobs), 'EX', 3600);
-      } catch (e) { console.error("Redis Set Error:", e.message); }
+      } catch (e) { console.warn("Cache write failed (ignoring)."); }
 
       return finalJobs;
 
@@ -147,7 +183,7 @@ fastify.get('/jobs', async (req, reply) => {
 });
 
 // ---------------------------------------------------------
-// 4. Chat & Applications (Standard)
+// 4. Chat & Applications
 // ---------------------------------------------------------
 fastify.post('/chat', async (req, reply) => {
   const { message } = req.body || {};
@@ -162,7 +198,6 @@ fastify.post('/applications', async (req, reply) => {
   if (!user) return reply.status(404).send({ error: "User not found" });
 
   try {
-    // Upsert ensures we don't apply twice to the same job
     const application = await prisma.application.upsert({
        where: { userId_jobId: { userId: user.id, jobId: jobId } },
        update: { status: status || "Applied" },
@@ -186,7 +221,7 @@ fastify.get('/applications', async (req, reply) => {
 });
 
 // ---------------------------------------------------------
-// 5. Seed Route (For Resetting Demo)
+// 5. Seed Route
 // ---------------------------------------------------------
 fastify.post('/seed', async (req, reply) => {
   try {
