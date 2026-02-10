@@ -55,7 +55,7 @@ Follow these steps to run the project on your local machine.
 
 ### 1. Clone the Repository
 ```bash
-git clone [https://github.com/Viren021/ai-job-tracker.git](https://github.com/Viren021/ai-job-tracker.git)
+git clone https://github.com/Viren021/ai-job-tracker.git
 cd ai-job-tracker
 ```
 
