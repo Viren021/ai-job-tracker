@@ -49,9 +49,31 @@ Here is the high-level architecture of the system, showing how the Frontend (Rea
 
 ---
 
-## 🚀 Getting Started Locally
+### **Option A: Run with Docker (Recommended 🐳)**
+*Best for quickly testing the app without installing dependencies.*
 
-Follow these steps to run the project on your local machine.
+1.  **Clone the repository:**
+    ```bash
+    git clone https://github.com/Viren021/ai-job-tracker.git
+    cd ai-job-tracker
+    ```
+
+2.  **Create Environment Variables:**
+    * Create a `.env` file in the `server/` folder.
+    * Add your API Keys (Gemini, Adzuna, Database URL).
+    * *Note: For Docker, set `DB_HOST=postgres` and `REDIS_HOST=redis` if you are using the internal network.*
+
+3.  **Run with Docker Compose:**
+    ```bash
+    docker-compose up --build
+    ```
+    * 🚀 **Frontend:** http://localhost:5173
+    * ⚙️ **Backend:** http://localhost:3000
+
+---
+
+### **Option B: Run Manually (Local Dev)**
+*Best if you want to modify the code or contribute.*
 
 ### 1. Clone the Repository
 ```bash
