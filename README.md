@@ -93,7 +93,7 @@ cp .env.example .env
 npx prisma migrate dev --name init
 
 # Start Server
-npm start
+npm run dev
 ```
 
 ### 3. Frontend Setup (`client/`)
