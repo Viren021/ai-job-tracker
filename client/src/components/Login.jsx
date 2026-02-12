@@ -4,7 +4,7 @@ import axios from 'axios';
 
 // 🌍 GLOBAL CONFIG: Backend URL
 // We use the live Render URL so login works on Mobile & Vercel
-const API_BASE_URL = "https://ai-job-tracker-api-e85o.onrender.com";
+const API_BASE_URL = import.meta.env.VITE_BASE_URL || "http://localhost:3000";
 
 const Login = ({ setIsAuthenticated }) => {
   const [email, setEmail] = useState('');

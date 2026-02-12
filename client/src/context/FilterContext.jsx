@@ -4,7 +4,7 @@ import axios from 'axios';
 const FilterContext = createContext();
 
 // 🌍 GLOBAL CONFIG: Backend URL
-const API_BASE_URL = "https://ai-job-tracker-api-e85o.onrender.com";
+const API_BASE_URL = import.meta.env.VITE_BASE_URL || "http://localhost:3000";
 
 export function FilterProvider({ children }) {
   // 1. Filter State

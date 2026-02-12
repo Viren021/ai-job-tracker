@@ -3,7 +3,7 @@ import axios from 'axios';
 import { Upload, FileText, CheckCircle } from 'lucide-react';
 
 // 🌍 GLOBAL CONFIG: Backend URL
-const API_BASE_URL = "https://ai-job-tracker-api-e85o.onrender.com";
+const API_BASE_URL = import.meta.env.VITE_BASE_URL || "http://localhost:3000";
 
 const ResumeUpload = () => {
   const [file, setFile] = useState(null);
